@@ -3,8 +3,6 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
-"""This sub-module contains the functions that are specific to the environment."""
+"""Locomotion environments for legged robots."""
 
-from isaaclab.envs.mdp import *  # noqa: F401, F403
-
-from .rewards import *  # noqa: F401, F403
+from .velocity_rma_v3 import *  # noqa
