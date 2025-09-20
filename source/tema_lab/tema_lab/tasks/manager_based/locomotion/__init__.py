@@ -6,3 +6,4 @@
 """Locomotion environments for legged robots."""
 
 from .velocity_rma_v3 import *  # noqa
+from .velocity_rma_v3_ftg import *
