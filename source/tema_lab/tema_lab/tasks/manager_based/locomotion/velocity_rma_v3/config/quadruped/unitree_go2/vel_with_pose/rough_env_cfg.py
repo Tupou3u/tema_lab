@@ -1,6 +1,6 @@
 from math import pi
 from isaaclab.utils import configclass
-from .velocity_env_cfg_6d import LocomotionVelocityRoughEnvCfg
+from .velocity_with_pose_env_cfg import LocomotionVelocityRoughEnvCfg
 from tema_lab.lab.terrains.config import HARD_ROUGH_TERRAINS_CFG
 from tema_lab.assets.robots.unitree import *
 
@@ -22,20 +22,20 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             ".*_calf_joint": -1.5,
         }
         
-        # self.scene.robot.actuators = {
-        #     "legs": delayed_actuators.DelayedUnitreeActuatorCfg(
-        #         joint_names_expr=[".*"],
-        #         stiffness=25, 
-        #         damping=0.5, 
-        #         friction=0.01,
-        #         X1=13.5,
-        #         X2=30,
-        #         Y1=20.2,
-        #         Y2=23.4,
-        #         min_delay=0,  
-        #         max_delay=5,  # in physics timesteps
-        #     )
-        # }      
+        self.scene.robot.actuators = {
+            "legs": delayed_actuators.DelayedUnitreeActuatorCfg(
+                joint_names_expr=[".*"],
+                stiffness=25, 
+                damping=0.5, 
+                friction=0.01,
+                X1=13.5,
+                X2=30,
+                Y1=20.2,
+                Y2=23.4,
+                min_delay=0,  
+                max_delay=5,  # in physics timesteps
+            )
+        }      
         
         self.scene.terrain.terrain_generator = HARD_ROUGH_TERRAINS_CFG
         # self.curriculum = None
@@ -87,6 +87,9 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.rewards.base_linear_velocity.weight = 7.0
         self.rewards.base_angular_velocity.weight = 3.0
+        self.rewards.base_roll.weight = 1.0
+        self.rewards.base_pitch.weight = 1.0
+        self.rewards.base_height.weight = 1.0
         self.rewards.foot_clearance.weight = 3.0 
         # self.rewards.gait.weight = 3.0
         self.rewards.air_time.weight = 5.0
@@ -94,7 +97,6 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.action_rate.weight = -0.1
         self.rewards.action_smoothness.weight = -0.1
         self.rewards.air_time_variance.weight = -1.0
-        self.rewards.base_orientation.weight = 2.0
         self.rewards.foot_slip.weight = -0.5
         self.rewards.joint_acc.weight = -1.0e-5
         # self.rewards.joint_pos.weight = -0.7
@@ -105,7 +107,6 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.rewards.hip_pos.weight = -1.0
         
         self.rewards.undesired_contacts.weight = -1.0
-        self.rewards.base_height_exp.weight = 2.0
         # self.rewards.contact_forces.weight = -1.5e-4
         # self.rewards.stand_still.weight = -5.0
         self.rewards.stand_still_vel.weight = -5.0
@@ -122,12 +123,10 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         
         self.rewards.base_linear_velocity.params["std"] = 0.25
         self.rewards.base_angular_velocity.params["std"] = 0.5
-        self.rewards.base_orientation.params["std"] = 0.05
+        self.rewards.base_height.params["std"] = 0.05
         self.rewards.foot_clearance.params["std"] = 0.01
         self.rewards.foot_clearance.params["tanh_mult"] = 5.0
         self.rewards.foot_clearance.params["target_height"] = 0.06 + 0.023
-        self.rewards.base_height_exp.params["std"] = 0.05
-        self.rewards.base_height_exp.params["target_height"] = 0.35
         self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
         self.rewards.feet_distance_y_exp.params["std"] = 0.025
         

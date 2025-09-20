@@ -600,7 +600,7 @@ class RewardsCfg:
         },
     )
 
-    base_height_exp = RewTerm(
+    base_height = RewTerm(
         func=mdp.base_height_exp,
         weight=0.0,
         params={

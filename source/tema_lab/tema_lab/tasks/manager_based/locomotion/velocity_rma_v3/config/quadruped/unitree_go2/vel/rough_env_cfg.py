@@ -117,7 +117,7 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.rewards.hip_pos.weight = -1.0
         
         self.rewards.undesired_contacts.weight = -1.0
-        self.rewards.base_height_exp.weight = 2.0
+        self.rewards.base_height.weight = 2.0
         # self.rewards.contact_forces.weight = -1.5e-4
         # self.rewards.stand_still.weight = -5.0
         self.rewards.stand_still_vel.weight = -5.0
@@ -138,8 +138,8 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         self.rewards.foot_clearance.params["std"] = 0.01
         self.rewards.foot_clearance.params["tanh_mult"] = 5.0
         self.rewards.foot_clearance.params["target_height"] = 0.06 + 0.023
-        self.rewards.base_height_exp.params["std"] = 0.05
-        self.rewards.base_height_exp.params["target_height"] = 0.35
+        self.rewards.base_height.params["std"] = 0.05
+        self.rewards.base_height.params["target_height"] = 0.35
         self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
         self.rewards.feet_distance_y_exp.params["std"] = 0.025
         
