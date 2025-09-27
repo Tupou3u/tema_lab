@@ -1,9 +1,8 @@
 from dataclasses import MISSING
 
-from isaaclab.controllers import DifferentialIKControllerCfg, OperationalSpaceControllerCfg
 from isaaclab.managers.action_manager import ActionTerm, ActionTermCfg
 from isaaclab.utils import configclass
-from isaaclab_tasks.manager_based.locomotion.velocity_rma_v3_ftg.mdp.actions.joint_actions import JointPositionFTGAction
+from .joint_actions import JointPositionFTGAction
 
 
 @configclass

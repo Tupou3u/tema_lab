@@ -73,7 +73,7 @@ class ActorCritic_o1(nn.Module):
             if layer_index != len(enc_dims) - 2:
                 critic_enc_layers.append(activation)
             elif enc_activation:
-                actor_enc_layers.append(activation)
+                critic_enc_layers.append(activation)
 
         self.critic_enc = nn.Sequential(*critic_enc_layers)
 

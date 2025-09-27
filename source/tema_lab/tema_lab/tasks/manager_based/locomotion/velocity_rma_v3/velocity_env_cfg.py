@@ -540,7 +540,10 @@ class RewardsCfg:
         weight=0.0,
         params={
             "asset_cfg": SceneEntityCfg("robot"),
-            "std": 0.1
+            "std": 0.1,
+            "linear_velocity_threshold": 0.1,
+            "angular_velocity_threshold": 0.2,
+            "stand_still_scale": 5.0,
         }
     )
 
@@ -607,7 +610,10 @@ class RewardsCfg:
             "asset_cfg": SceneEntityCfg("robot", body_names="base"),
             "sensor_cfg": SceneEntityCfg("height_scanner_base"),
             "target_height": 0.33,
-            "std": 0.2
+            "std": 0.2,
+            "linear_velocity_threshold": 0.1,
+            "angular_velocity_threshold": 0.2,
+            "stand_still_scale": 5.0,
         },
     )
 

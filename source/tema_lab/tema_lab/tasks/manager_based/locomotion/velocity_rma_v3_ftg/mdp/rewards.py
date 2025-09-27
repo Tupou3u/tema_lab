@@ -86,27 +86,29 @@ def foot_clearance_reward(
     asset_cfg: SceneEntityCfg,
     target_height: float, 
     std: float, 
-    tanh_mult: float,
     sensors: list[str],
 ) -> torch.Tensor:
     """Reward the swinging feet for clearing a specified height off the ground"""
     asset: RigidObject = env.scene[asset_cfg.name]
     sensors: list[RayCaster] = [env.scene[name] for name in sensors]
     reward = torch.zeros(env.num_envs, device=env.device)
-
-    for foot_idx, sensor in zip(asset_cfg.body_ids, sensors):
-        ray_hits = sensor.data.ray_hits_w[..., 2]
-        if torch.isnan(ray_hits).any() or torch.isinf(ray_hits).any() or torch.max(torch.abs(ray_hits)) > 1e6:
-            adjusted_target_height = target_height
-        else:
-            # adjusted_target_height = target_height + ray_hits.max()
-            adjusted_target_height = target_height + ray_hits[:, ray_hits.size(-1) // 2]
-
-        foot_z_target_error = torch.square(asset.data.body_pos_w[:, foot_idx, 2] - adjusted_target_height)
-        foot_velocity_tanh = torch.tanh(tanh_mult * torch.norm(asset.data.body_lin_vel_w[:, foot_idx, :2], dim=1))
-        reward += foot_z_target_error * foot_velocity_tanh
-        
-    return torch.exp(-reward / std)
+    
+    ray_hits = torch.stack([sensor.data.ray_hits_w[..., 2] for sensor in sensors], dim=1)
+    adjusted_target_height = torch.where(
+        torch.isnan(ray_hits).any() or torch.isinf(ray_hits).any() or torch.max(torch.abs(ray_hits)) > 1e6,
+        target_height,
+        target_height + ray_hits[..., ray_hits.size(-1) // 2]
+    )
+    foot_z_target_error = torch.square(asset.data.body_pos_w[:, asset_cfg.body_ids, 2] - adjusted_target_height)  
+    # reward = foot_z_target_error * ~env.ftg.on_ground_mask
+    alpha = torch.where(
+        env.ftg.on_ground_mask,
+        0.0,
+        1 - torch.abs(2 * env.ftg.foot_phase / torch.pi - 1)
+    ) 
+    reward = foot_z_target_error * alpha
+    # print(asset.data.body_pos_w[:, asset_cfg.body_ids, 2])
+    return torch.exp(-reward.sum(dim=-1) / std)
 
 
 class GaitReward(ManagerTermBase):
@@ -350,6 +352,15 @@ def joint_velocity_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) ->
     asset: Articulation = env.scene[asset_cfg.name]
     return torch.linalg.norm((asset.data.joint_vel[:, asset_cfg.joint_ids]), dim=1)
 
+
+def joint_power_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
+    asset: Articulation = env.scene[asset_cfg.name]
+    reward = torch.sum(
+        torch.abs(asset.data.joint_vel[:, asset_cfg.joint_ids] * asset.data.applied_torque[:, asset_cfg.joint_ids]),
+        dim=1
+    )
+    return reward
+
 # Others
 
 def foot_clearance_body_reward(
@@ -455,9 +466,12 @@ def feet_stumble(env: ManagerBasedRLEnv, sensor_cfg: SceneEntityCfg) -> torch.Te
 def base_height_exp(
     env: ManagerBasedRLEnv,
     target_height: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
-    sensor_cfg: SceneEntityCfg | None = None,
-    std: float = 0.05,
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
+    std: float,
+    linear_velocity_threshold: float,
+    angular_velocity_threshold: float,
+    stand_still_scale: float
 ) -> torch.Tensor:
     """Penalize asset height from its target using L2 squared kernel.
 
@@ -479,10 +493,21 @@ def base_height_exp(
         # Use the provided target height directly for flat terrain
         adjusted_target_height = target_height
         
-    # print(asset.data.root_pos_w[:, 2])
+    err = torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
+    reward = torch.exp(-err / std)
+    
+    cmd = torch.norm(env.command_manager.get_command("base_velocity"), dim=1)
+    body_vel = torch.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
+    body_ang_vel = torch.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
+    cond = torch.logical_or(
+        torch.logical_or(
+            body_vel > linear_velocity_threshold, 
+            body_ang_vel > angular_velocity_threshold
+        ),
+        cmd > 0.0
+    )
 
-    reward = torch.abs(asset.data.root_pos_w[:, 2] - adjusted_target_height)
-    return torch.exp(-reward / std)
+    return torch.where(cond, reward, stand_still_scale * reward)
 
 
 def base_height_exp_from_command(
@@ -560,22 +585,29 @@ def ang_vel_w_l2(
 def base_orientation_exp(
     env: ManagerBasedRLEnv, 
     asset_cfg: SceneEntityCfg,
-    std: float
+    std: float,
+    linear_velocity_threshold: float,
+    angular_velocity_threshold: float,
+    stand_still_scale: float
 ) -> torch.Tensor:
     # extract the used quantities (to enable type-hinting)
     asset: RigidObject = env.scene[asset_cfg.name]
     roll, pitch, _ = math_utils.euler_xyz_from_quat(asset.data.root_quat_w)
     roll, pitch = math_utils.wrap_to_pi(roll).abs(), math_utils.wrap_to_pi(pitch).abs()
-    return torch.exp(-(roll + pitch) / std)
-
-
-def joint_power_penalty(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg) -> torch.Tensor:
-    asset: Articulation = env.scene[asset_cfg.name]
-    reward = torch.sum(
-        torch.abs(asset.data.joint_vel[:, asset_cfg.joint_ids] * asset.data.applied_torque[:, asset_cfg.joint_ids]),
-        dim=1
+    reward = torch.exp(-(roll + pitch) / std)
+    
+    cmd = torch.norm(env.command_manager.get_command("base_velocity"), dim=1)
+    body_vel = torch.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
+    body_ang_vel = torch.norm(asset.data.root_lin_vel_b[:, :2], dim=1)
+    cond = torch.logical_or(
+        torch.logical_or(
+            body_vel > linear_velocity_threshold, 
+            body_ang_vel > angular_velocity_threshold
+        ),
+        cmd > 0.0
     )
-    return reward
+
+    return torch.where(cond, reward, stand_still_scale * reward)
 
 
 class ActionSmoothnessPenalty(ManagerTermBase):
@@ -684,7 +716,8 @@ def feet_distance_y_exp(
     env: ManagerBasedRLEnv,
     stance_width: float,
     std: float,
-    asset_cfg: SceneEntityCfg = SceneEntityCfg("robot"),
+    asset_cfg: SceneEntityCfg,
+    sensor_cfg: SceneEntityCfg,
 ) -> torch.Tensor:
     asset: RigidObject = env.scene[asset_cfg.name]
 
@@ -708,9 +741,15 @@ def feet_distance_y_exp(
 
     # Compute differences in y
     stance_diff_y = torch.square(desired_ys - footsteps_in_body_frame[:, :, 1])
-
+    
+    contact_sensor: ContactSensor = env.scene.sensors[sensor_cfg.name]
+    net_contact_forces = contact_sensor.data.net_forces_w_history
+    is_contact = torch.max(torch.norm(net_contact_forces[:, :, sensor_cfg.body_ids], dim=-1), dim=1)[0] > 1.0
+    
+    foot_reward = stance_diff_y * is_contact
+    
     # Combine x and y differences and compute the exponential penalty
-    reward = torch.exp(-torch.sum(stance_diff_y, dim=1) / std)
+    reward = torch.exp(-torch.sum(foot_reward, dim=1) / std)
     return reward
 
 

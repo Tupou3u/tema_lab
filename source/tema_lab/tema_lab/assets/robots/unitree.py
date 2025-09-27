@@ -34,7 +34,7 @@ class UnitreeArticulationCfg(ArticulationCfg):
 
 UNITREE_GO2_CFG = UnitreeArticulationCfg(
     spawn=sim_utils.UsdFileCfg(
-        # usd_path=f"{UNITREE_MODEL_DIR}/go2_description/usd/go2.usd",
+        # usd_path=f"{UNITREE_MODEL_DIR}/go2/usd/go2.usd",
         usd_path=f"{ISAACLAB_NUCLEUS_DIR}/Robots/Unitree/Go2/go2.usd",
         activate_contact_sensors=True,
         rigid_props=sim_utils.RigidBodyPropertiesCfg(
@@ -42,8 +42,8 @@ UNITREE_GO2_CFG = UnitreeArticulationCfg(
             retain_accelerations=False,
             linear_damping=0.0,
             angular_damping=0.0,
-            max_linear_velocity=100.0,
-            max_angular_velocity=100.0,
+            max_linear_velocity=1000.0,
+            max_angular_velocity=1000.0,
             max_depenetration_velocity=1.0,
         ),
         articulation_props=sim_utils.ArticulationRootPropertiesCfg(

@@ -28,6 +28,25 @@ class RslRlPpoActorCritic_o1_Cfg:
     enc_dims: list[int] = MISSING
     len_o1: int = MISSING
     enc_activation: bool = MISSING
+    
+    
+@configclass
+class RslRlPpoActorCritic_Async_Cfg:
+    class_name: str = "ActorCritic_async"
+    init_noise_std: float = MISSING
+    noise_std_type: Literal["scalar", "log"] = "scalar"
+    actor_hidden_dims: list[int] = MISSING
+    critic_hidden_dims: list[int] = MISSING
+    activation: str = MISSING
+    actor_cnn_kernel_sizes: list[int] = MISSING
+    actor_cnn_strides: list[int] = MISSING
+    actor_cnn_filters: list[int] = MISSING
+    actor_cnn_paddings: list[int] = MISSING
+    actor_cnn_dilations: list[int] = MISSING
+    critic_enc_dims: list[int] = MISSING
+    len_o1: int = MISSING
+    sum_actor_obs: int = MISSING
+    enc_activation: bool = MISSING
 
 
 #########################
@@ -54,7 +73,7 @@ class RslRlOnPolicyRunnerCfg:
     empirical_normalization: bool = MISSING
     """Whether to use empirical normalization."""
 
-    policy: RslRlPpoActorCriticCfg | RslRlPpoActorCritic_o1_Cfg | RslRlDistillationStudentTeacherCfg = MISSING
+    policy: RslRlPpoActorCriticCfg | RslRlPpoActorCritic_o1_Cfg | RslRlPpoActorCritic_Async_Cfg | RslRlDistillationStudentTeacherCfg = MISSING
     """The policy configuration."""
 
     algorithm: RslRlPpoAlgorithmCfg | RslRlDistillationAlgorithmCfg = MISSING

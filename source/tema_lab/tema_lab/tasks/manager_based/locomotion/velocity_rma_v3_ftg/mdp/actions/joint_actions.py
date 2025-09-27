@@ -6,8 +6,6 @@ from typing import TYPE_CHECKING
 
 import omni.log
 
-import isaaclab.utils.string as string_utils
-import isaaclab.utils.math as math_utils
 from isaaclab.assets.articulation import Articulation
 from isaaclab.managers.action_manager import ActionTerm
 
@@ -16,25 +14,28 @@ if TYPE_CHECKING:
     from . import actions_cfg
     
     
-from torch import arctan2, arcsin, arccos, pi, sin, cos, tensor, sqrt
-    
-    
-L1 = 0.067
-L2 = 0.213
-L3 = 0.210
-L4 = 0.094
-BASE_LEN = 0.257
-BASE_WIDTH = 0.0935
-    
+from torch import arctan2, arccos, pi, sin, cos, tensor, sqrt
+from dataclasses import dataclass
+
+
+@dataclass
+class Go2:
+    L1 = 0.067
+    L2 = 0.213
+    L3 = 0.210
+    L4 = 0.094
+    BASE_LEN = 0.257
+    BASE_WIDTH = 0.0935
+        
 
 class Go2LegsUtils:
     def __init__(self, env: ManagerBasedRLEnv):
         self.device = env.device
         self._pHip2B = tensor([
-            [ L1 + BASE_LEN / 2,  BASE_WIDTH / 2, 0.0],
-            [ L1 + BASE_LEN / 2, -BASE_WIDTH / 2, 0.0],
-            [-L1 - BASE_LEN / 2,  BASE_WIDTH / 2, 0.0],
-            [-L1 - BASE_LEN / 2, -BASE_WIDTH / 2, 0.0]
+            [Go2.L1 + Go2.BASE_LEN / 2,  Go2.BASE_WIDTH / 2, 0.0],
+            [Go2.L1 + Go2.BASE_LEN / 2, -Go2.BASE_WIDTH / 2, 0.0],
+            [-Go2.L1 - Go2.BASE_LEN / 2,  Go2.BASE_WIDTH / 2, 0.0],
+            [-Go2.L1 - Go2.BASE_LEN / 2, -Go2.BASE_WIDTH / 2, 0.0]
         ]).to(self.device)
         self._sideSign = tensor([1, -1, 1, -1]).to(self.device)
 
@@ -48,9 +49,9 @@ class Go2LegsUtils:
         if frame not in {'HIP', 'BODY'}:
             raise ValueError("Frame must be HIP or BODY")
                 
-        l1 = L4 * self._sideSign
-        l2 = -L2
-        l3 = -L3
+        l1 = Go2.L4 * self._sideSign
+        l2 = -Go2.L2
+        l3 = -Go2.L3
         
         s1 = sin(q[:, :, 0])
         s2 = sin(q[:, :, 1])
@@ -83,11 +84,11 @@ class Go2LegsUtils:
             
         px, py, pz = pEe2H[:, :, 0], pEe2H[:, :, 1], pEe2H[:, :, 2]
         
-        b2y = L4 * self._sideSign
-        b3z = -L2
-        b4z = -L3
+        b2y = Go2.L4 * self._sideSign
+        b3z = -Go2.L2
+        b4z = -Go2.L3
         
-        a = L4
+        a = Go2.L4
         c = sqrt(px**2 + py**2 + pz**2)
         b = sqrt(c**2 - a**2)
         
@@ -141,9 +142,9 @@ class FTG:
         if not hasattr(self._env, "reset_buf") or self._env.reset_buf is None:
             self._env.reset_buf = torch.zeros(self._env.num_envs, device=self._env.device, dtype=torch.bool)
                 
-        self.phase = (2 * pi * self.f_b * self.count.unsqueeze(1) * self._env.step_dt) % (2 * pi)
-        foot_phase = (self.gait_pattern + 2 * pi * self.f_alpha * f_pi + self.phase) % (2 * pi)
-        stop_timeout = self.stop_count * self._env.step_dt > 1 / self.f_b
+        self.phase = self.f_b * self.count.unsqueeze(1) * self._env.step_dt
+        foot_phase = (self.gait_pattern + 2 * pi * (self.f_alpha * f_pi + self.phase)) % (2 * pi)
+        stop_timeout = self.stop_count * self._env.step_dt > 2 / self.f_b
         
         self.foot_phase = torch.where(
             self.on_ground_mask * stop_timeout.unsqueeze(1),
@@ -182,7 +183,7 @@ class FTG:
     def get_ftg_pos(self, phi):
         h = self.get_ftg_h(phi)
         p_hip = torch.zeros(self._env.num_envs, 4, 3).to(self._env.device)
-        p_hip[:, :, 1] = tensor([L4, -L4, L4, -L4])
+        p_hip[:, :, 1] = tensor([Go2.L4, -Go2.L4, Go2.L4, -Go2.L4])
         p_hip[:, :, 2] = -(self.base_h - h)
         return p_hip
         # roll, pitch, _ = math_utils.euler_xyz_from_quat(self.env.scene['imu'].data.quat_w)
@@ -203,6 +204,7 @@ class FTG:
         rot[:, 1, 1] = 1
         rot[:, 2, 0], rot[:, 2, 2] = -sin(q), cos(q)
         return rot
+
 
 class JointPositionFTGAction(ActionTerm):
 
