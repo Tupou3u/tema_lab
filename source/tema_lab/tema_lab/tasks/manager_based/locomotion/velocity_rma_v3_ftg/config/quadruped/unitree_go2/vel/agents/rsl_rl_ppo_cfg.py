@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from isaaclab.utils import configclass
-from isaaclab_rl.rsl_rl import (
-    RslRlOnPolicyRunnerCfg,  
+from tema_lab.rl.rsl_rl.cfg import (
+    RslRlOnPolicyRunnerCfg,
     RslRlPpoActorCritic_o1_Cfg,
-    RslRlPpoAlgorithmCfg, 
+    RslRlPpoAlgorithmCfg,
     RslRlDistillation_CNN1d_o1_StudentTeacherCfg,
-    RslRlDistillation_CNN1d_o1_res_StudentTeacherCfg,
     RslRlDistillation_Recurrent_o1_StudentTeacherCfg,
     RslRlDistillation_o1_AlgorithmCfg
 )

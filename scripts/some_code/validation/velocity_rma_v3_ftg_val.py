@@ -52,11 +52,11 @@ model = ActorCritic_o1(
     len_o1=59,
     enc_activation=False
 )
-# load_state = torch.load('logs/rsl_rl/go2_velocity_rma_v3_ftg_flat/2025-09-26_16-01-29_teacher/model_11000.pt', weights_only=True)['model_state_dict']
-# model.load_state_dict(load_state)
-# model.eval()
-# pi = model.act_inference
-pi = model.act
+load_state = torch.load('/home/tema/Downloads/loaded_models/msi/model_6500.pt', weights_only=True)['model_state_dict']
+model.load_state_dict(load_state)
+model.eval()
+pi = model.act_inference
+# pi = model.act
 
 dt = env.unwrapped.step_dt
 # simulate physics
