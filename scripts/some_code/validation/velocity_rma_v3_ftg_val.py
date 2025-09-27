@@ -19,7 +19,7 @@ import time
 import torch
 from isaaclab.envs import ManagerBasedRLEnv
 from tema_lab.tasks.manager_based.locomotion.velocity_rma_v3_ftg.config.quadruped.unitree_go2.vel.flat_env_cfg import Go2FlatEnvCfg, Go2RoughEnvCfg
-from isaaclab_rl.rsl_rl.new_modules.actor_critic_o1 import ActorCritic_o1
+from tema_lab.rl.rsl_rl.agents.actor_critic_o1 import ActorCritic_o1
 from isaaclab.devices import Se2Keyboard, Se2KeyboardCfg
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 

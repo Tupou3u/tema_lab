@@ -8,7 +8,9 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 from torch.distributions import Normal
+
 from rsl_rl.utils import resolve_nn_activation
+from math import sqrt
 
 
 class ActorCritic_o1(nn.Module):
@@ -42,10 +44,10 @@ class ActorCritic_o1(nn.Module):
 
         # Policy
         actor_enc_layers = []
-        actor_enc_layers.append(nn.Linear(self.len_obs - self.len_o1, enc_dims[0]))
+        actor_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
         actor_enc_layers.append(activation)
         for layer_index in range(len(enc_dims) - 1):
-            actor_enc_layers.append(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1]))
+            actor_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
             if layer_index != len(enc_dims) - 2:
                 actor_enc_layers.append(activation)
             elif enc_activation:
@@ -54,22 +56,22 @@ class ActorCritic_o1(nn.Module):
         self.actor_enc = nn.Sequential(*actor_enc_layers)
 
         actor_layers = []
-        actor_layers.append(nn.Linear(enc_dims[-1] + self.len_o1, actor_hidden_dims[0]))
+        actor_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, actor_hidden_dims[0])))
         actor_layers.append(activation)
         for layer_index in range(len(actor_hidden_dims)):
             if layer_index == len(actor_hidden_dims) - 1:
-                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], num_actions))
+                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], num_actions), std=1.0))
             else:
-                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1]))
+                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1])))
                 actor_layers.append(activation)
         self.actor = nn.Sequential(*actor_layers)
 
         # Value function
         critic_enc_layers = []
-        critic_enc_layers.append(nn.Linear(self.len_obs - self.len_o1, enc_dims[0]))
+        critic_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
         critic_enc_layers.append(activation)
         for layer_index in range(len(enc_dims) - 1):
-            critic_enc_layers.append(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1]))
+            critic_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
             if layer_index != len(enc_dims) - 2:
                 critic_enc_layers.append(activation)
             elif enc_activation:
@@ -78,13 +80,13 @@ class ActorCritic_o1(nn.Module):
         self.critic_enc = nn.Sequential(*critic_enc_layers)
 
         critic_layers = []
-        critic_layers.append(nn.Linear(enc_dims[-1] + self.len_o1, critic_hidden_dims[0]))
+        critic_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, critic_hidden_dims[0])))
         critic_layers.append(activation)
         for layer_index in range(len(critic_hidden_dims)):
             if layer_index == len(critic_hidden_dims) - 1:
-                critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], 1))
+                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], 1), std=1.0))
             else:
-                critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1]))
+                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1])))
                 critic_layers.append(activation)
         self.critic = nn.Sequential(*critic_layers)
 
@@ -110,12 +112,10 @@ class ActorCritic_o1(nn.Module):
         Normal.set_default_validate_args(False)
 
     @staticmethod
-    # not used at the moment
-    def init_weights(sequential, scales):
-        [
-            torch.nn.init.orthogonal_(module.weight, gain=scales[idx])
-            for idx, module in enumerate(mod for mod in sequential if isinstance(mod, nn.Linear))
-        ]
+    def layer_init(layer, std=sqrt(2), bias_const=0.0):
+        torch.nn.init.orthogonal_(layer.weight, std)
+        torch.nn.init.constant_(layer.bias, bias_const)
+        return layer
 
     def reset(self, dones=None):
         pass
