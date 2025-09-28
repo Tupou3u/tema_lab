@@ -98,16 +98,19 @@ class Go2LegsUtils:
         
         return torch.stack([-q1, q2, q3], dim=-1)
 
-    def q1_ik(self, py, pz, l1):
+    @staticmethod
+    def q1_ik(py, pz, l1):
         L = sqrt(py**2 + pz**2 - l1**2)
         return arctan2(pz * l1 + py * L, py * l1 - pz * L)
 
-    def q3_ik(self, b3z, b4z, b):
+    @staticmethod
+    def q3_ik(b3z, b4z, b):
         temp = (b3z**2 + b4z**2 - b ** 2) / (2 * abs(b3z * b4z))
         temp = torch.clamp(temp, -1, 1)
         return -(pi - arccos(temp))
 
-    def q2_ik(self, q1, q3, px, py, pz, b3z, b4z):
+    @staticmethod
+    def q2_ik(q1, q3, px, py, pz, b3z, b4z):
         a1 = py * sin(q1) - pz * cos(q1)
         a2 = px
         m1 = b4z * sin(q3)

@@ -31,7 +31,7 @@ class Go2RoughPPORunnerCfg_Teacher(RslRlOnPolicyRunnerCfg):
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=0.1,
         use_clipped_value_loss=True,
-        clip_param=0.1,
+        clip_param=0.2,
         entropy_coef=0.01, 
         # entropy_coef=0.0025,
         num_learning_epochs=5,

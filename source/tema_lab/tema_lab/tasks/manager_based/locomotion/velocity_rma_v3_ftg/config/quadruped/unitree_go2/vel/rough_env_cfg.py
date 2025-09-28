@@ -66,8 +66,12 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Actions------------------------------
 
+        self.actions.joint_pos_ftg.mode = "ftg"
         self.actions.joint_pos_ftg.alpha = 0.01
-        self.actions.joint_pos_ftg.f_alpha = 0.1
+        self.actions.joint_pos_ftg.f_alpha = 0.01
+        # self.actions.joint_pos_ftg.mode = "joint"
+        # self.actions.joint_pos_ftg.alpha = 0.2
+        # self.actions.joint_pos_ftg.f_alpha = 0.1
         self.actions.joint_pos_ftg.h_max = self.h_max
         self.actions.joint_pos_ftg.f_b = self.f_b
         self.actions.joint_pos_ftg.joint_names = self.scene.robot.joint_sdk_names
@@ -95,49 +99,49 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Rewards------------------------------
         
-        self.rewards.base_linear_velocity.weight = 10.0
+        self.rewards.base_linear_velocity.weight = 5.0
         self.rewards.base_linear_velocity.params["std"] = 1.0
-        self.rewards.base_angular_velocity.weight = 5.0
+        self.rewards.base_angular_velocity.weight = 3.0
         self.rewards.base_angular_velocity.params["std"] = 2.0
-        self.rewards.foot_clearance.weight = 3.0 
-        self.rewards.foot_clearance.params["std"] = 0.01
-        self.rewards.foot_clearance.params["target_height"] = self.h_max + 0.023
+        # self.rewards.foot_clearance.weight = 1.0 
+        # self.rewards.foot_clearance.params["std"] = 0.01
+        # self.rewards.foot_clearance.params["target_height"] = self.h_max + 0.023
         self.rewards.gait.weight = 1.0
-        self.rewards.gait.params["std"] = 0.05
-        self.rewards.air_time.weight = 1.0
-        self.rewards.air_time.params["mode_time"] = (1 / self.f_b) / 2
+        self.rewards.gait.params["std"] = 0.1
+        # self.rewards.air_time.weight = 1.0
+        # self.rewards.air_time.params["mode_time"] = (1 / self.f_b) / 2
         self.rewards.action_rate.weight = -0.01
         self.rewards.action_smoothness.weight = -0.01
-        self.rewards.air_time_variance.weight = -1.0
-        self.rewards.base_orientation.weight = 1.0
-        self.rewards.base_orientation.params["std"] = 0.05
-        self.rewards.foot_slip.weight = -0.5
-        self.rewards.joint_acc.weight = -1.0e-5
-        self.rewards.joint_vel.weight = -0.01
-        self.rewards.joint_vel.params["asset_cfg"].joint_names = ".*_hip_joint"
-        self.rewards.joint_power.weight = -1.0e-4    
+        # self.rewards.air_time_variance.weight = -1.0
+        # self.rewards.base_orientation.weight = 1.0
+        # self.rewards.base_orientation.params["std"] = 0.05
+        # self.rewards.foot_slip.weight = -0.5
+        # self.rewards.joint_acc.weight = -1.0e-5
+        # self.rewards.joint_vel.weight = -0.01
+        # self.rewards.joint_vel.params["asset_cfg"].joint_names = ".*_hip_joint"
+        # self.rewards.joint_power.weight = -1.0e-4    
         
         self.rewards.undesired_contacts.weight = -1.0
         self.rewards.undesired_contacts.params["sensor_cfg"].body_names = ["Head_.*", ".*_hip", ".*_thigh", ".*_calf"]
-        self.rewards.base_height.weight = 1.0
-        self.rewards.base_height.params["std"] = 0.05
-        self.rewards.base_height.params["target_height"] = self.actions.joint_pos_ftg.base_h
-        self.rewards.contact_forces.weight = -1.0e-3
-        self.rewards.stand_still.weight = -5.0
-        self.rewards.stand_still_vel.weight = -1.0
-        self.rewards.feet_contact_without_cmd.weight = 0.25
-        self.rewards.joint_pos_limits.weight = -10.0
-        self.rewards.joint_torque_limits.weight = -0.1
-        self.rewards.lin_vel_z_l2.weight = -5.0
-        self.rewards.ang_vel_xy_l2.weight = -2.0
-        self.rewards.joint_mirror.weight = -0.1
-        self.rewards.joint_mirror.params["mirror_joints"] = [
-            ["FR_(thigh|calf).*", "RL_(thigh|calf).*"],
-            ["FL_(thigh|calf).*", "RR_(thigh|calf).*"],
-        ]
-        self.rewards.feet_distance_y_exp.weight = 3.0
-        self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
-        self.rewards.feet_distance_y_exp.params["std"] = 0.025
+        # self.rewards.base_height.weight = 1.0
+        # self.rewards.base_height.params["std"] = 0.05
+        # self.rewards.base_height.params["target_height"] = self.actions.joint_pos_ftg.base_h
+        # self.rewards.contact_forces.weight = -1.0e-3
+        # self.rewards.stand_still.weight = -5.0
+        # self.rewards.stand_still_vel.weight = -1.0
+        # self.rewards.feet_contact_without_cmd.weight = 0.25
+        # self.rewards.joint_pos_limits.weight = -10.0
+        # self.rewards.joint_torque_limits.weight = -0.1
+        # self.rewards.lin_vel_z_l2.weight = -2.0
+        # self.rewards.ang_vel_xy_l2.weight = -0.05
+        # self.rewards.joint_mirror.weight = -1.0
+        # self.rewards.joint_mirror.params["mirror_joints"] = [
+        #     ["FR_(thigh|calf).*", "RL_(thigh|calf).*"],
+        #     ["FL_(thigh|calf).*", "RR_(thigh|calf).*"],
+        # ]
+        # self.rewards.feet_distance_y_exp.weight = 1.0
+        # self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
+        # self.rewards.feet_distance_y_exp.params["std"] = 0.025
 
         # ------------------------------Terminations------------------------------
 
