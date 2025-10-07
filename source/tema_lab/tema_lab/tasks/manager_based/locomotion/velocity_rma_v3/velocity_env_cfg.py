@@ -4,6 +4,7 @@ from dataclasses import MISSING
 import isaaclab.sim as sim_utils
 from isaaclab.assets import ArticulationCfg, AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
+from isaaclab.envs import ViewerCfg
 from isaaclab.managers import CurriculumTermCfg as CurrTerm
 from isaaclab.managers import EventTermCfg as EventTerm
 from isaaclab.managers import ObservationGroupCfg as ObsGroup
@@ -52,12 +53,20 @@ class SceneCfg(InteractiveSceneCfg):
     # robots
     robot: ArticulationCfg = MISSING
     # sensors
+    # height_scanner_terrain = RayCasterCfg(
+    #     prim_path="{ENV_REGEX_NS}/Robot/base",
+    #     offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
+    #     ray_alignment="yaw",
+    #     pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(1.0, 0.8)),
+    #     debug_vis=True,
+    #     mesh_prim_paths=["/World/ground"],
+    # )
     height_scanner_base = RayCasterCfg(
         prim_path="{ENV_REGEX_NS}/Robot/base",
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.0, 0.0)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_FR_foot = RayCasterCfg(
@@ -65,7 +74,7 @@ class SceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_FL_foot = RayCasterCfg(
@@ -73,7 +82,7 @@ class SceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_RR_foot = RayCasterCfg(
@@ -81,7 +90,7 @@ class SceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_RL_foot = RayCasterCfg(
@@ -89,7 +98,7 @@ class SceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     contact_forces = ContactSensorCfg(
@@ -157,7 +166,7 @@ class ObservationsCfg:
         imu_ang_vel = ObsTerm(
             func=base_mdp.imu_ang_vel,
             scale=1.0,
-            clip=(-100, 100)
+            clip=(-100, 100),
         )
         projected_gravity = ObsTerm(
             func=base_mdp.projected_gravity, 
@@ -325,11 +334,11 @@ class ObservationsCfg:
             self.enable_corruption = True
             self.concatenate_terms = True
 
-    # observation groups
-    policy: TeacherCfg = TeacherCfg()
+    # # observation groups
+    # policy: TeacherCfg = TeacherCfg()
 
-    # teacher: TeacherCfg = TeacherCfg()
-    # policy: PolicyCfg = PolicyCfg()
+    # # teacher: TeacherCfg = TeacherCfg()
+    # # policy: PolicyCfg = PolicyCfg()
 
 
 @configclass
@@ -348,6 +357,18 @@ class EventCfg:
             "num_buckets": 64,
         },
     )
+    
+    # randomize_joint_parameters = EventTerm(
+    #     func=base_mdp.randomize_joint_parameters,
+    #     mode="reset",
+    #     params={
+    #         "asset_cfg": SceneEntityCfg("robot", joint_names=".*"), 
+    #         "friction_distribution_params": (0.2, 2.0),
+    #         "armature_distribution_params": (0.0, 1.0),
+    #         "operation": "scale",
+    #         "distribution": "uniform",
+    #     },
+    # )
 
     randomize_rigid_base_mass = EventTerm(
         func=mdp.randomize_rigid_body_mass,
@@ -688,6 +709,16 @@ class RewardsCfg:
         weight=0.0
     )
     
+    ang_vel_x_l2 = RewTerm(
+        func=mdp.ang_vel_x_l2, 
+        weight=0.0
+    )
+    
+    ang_vel_y_l2 = RewTerm(
+        func=mdp.ang_vel_y_l2, 
+        weight=0.0
+    )
+    
     joint_mirror = RewTerm(
         func=mdp.joint_mirror, 
         weight=0.0,
@@ -784,6 +815,8 @@ class LocomotionVelocityRoughEnvCfg(ManagerBasedRLEnvCfg):
     terminations: TerminationsCfg = TerminationsCfg()
     events: EventCfg = EventCfg()
     curriculum: CurriculumCfg = CurriculumCfg()
+    
+    # viewer = ViewerCfg(eye=(10.5, 10.5, 0.3), origin_type="env", env_index=0, asset_name="robot")
 
     def __post_init__(self):
         """Post initialization."""

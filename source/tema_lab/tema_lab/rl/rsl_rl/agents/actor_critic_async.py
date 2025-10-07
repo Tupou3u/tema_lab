@@ -8,7 +8,13 @@ from rsl_rl.utils import resolve_nn_activation
 from math import sqrt
 
 
-class ActorCritic_o1(nn.Module):
+def layer_init(layer, std=sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
+
+
+class ActorCritic_async(nn.Module):
     is_recurrent = False
 
     def __init__(
@@ -21,9 +27,15 @@ class ActorCritic_o1(nn.Module):
         activation="elu",
         init_noise_std=1.0,
         noise_std_type: str = "scalar",
-        enc_dims=[128, 64],
-        len_o1=48,
-        enc_activation=True,
+        actor_cnn_kernel_sizes: list[int] = [3, 3, 3],
+        actor_cnn_strides: list[int] = [3, 3, 3],
+        actor_cnn_filters: list[int] = [32, 16, 8],
+        actor_cnn_paddings: list[int] = [0, 0, 1],
+        actor_cnn_dilations: list[int] = [1, 1, 1],
+        critic_enc_dims=[128, 64],
+        len_o1: int = 48,
+        sum_actor_obs: int = 65,
+        enc_activation: bool = False,
         **kwargs,
     ):
         if kwargs:
@@ -34,40 +46,60 @@ class ActorCritic_o1(nn.Module):
         super().__init__()
         activation = resolve_nn_activation(activation)
 
-        self.len_obs = num_actor_obs
+        self.sum_actor_obs = sum_actor_obs
+        self.num_critic_obs = num_critic_obs
         self.len_o1 = len_o1
 
-        # Policy
-        actor_enc_layers = []
-        actor_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
-        actor_enc_layers.append(activation)
-        for layer_index in range(len(enc_dims) - 1):
-            actor_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
-            if layer_index != len(enc_dims) - 2:
-                actor_enc_layers.append(activation)
-            elif enc_activation:
-                actor_enc_layers.append(activation)
-                
-        self.actor_enc = nn.Sequential(*actor_enc_layers)
+        # Policy        
+        s_out_channels = actor_cnn_filters
+        s_in_channels = [self.len_o1] + actor_cnn_filters[:-1]
+
+        cnn_actor_layers = []
+        s_cnn_out = self.sum_actor_obs - 1
+        for in_ch, out_ch, kernel_size, stride, padding, dilation in zip(
+            s_in_channels, 
+            s_out_channels, 
+            actor_cnn_kernel_sizes, 
+            actor_cnn_strides, 
+            actor_cnn_paddings, 
+            actor_cnn_dilations
+        ):
+            cnn_actor_layers.append(nn.Conv1d(
+                in_channels=in_ch,
+                out_channels=out_ch,
+                kernel_size=kernel_size,
+                stride=stride,
+                padding=padding,
+                dilation=dilation
+            ))
+            cnn_actor_layers.append(nn.BatchNorm1d(out_ch))
+            cnn_actor_layers.append(activation)
+            s_cnn_out = (s_cnn_out + 2 * padding - dilation * (kernel_size - 1) - 1) // stride + 1
+
+        cnn_actor_layers.append(nn.Flatten())
+        cnn_actor_layers.append(nn.Linear(s_cnn_out * s_out_channels[-1], critic_enc_dims[-1]))
+        if enc_activation:
+            cnn_actor_layers.append(activation)
+        self.cnn_actor = nn.Sequential(*cnn_actor_layers)
 
         actor_layers = []
-        actor_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, actor_hidden_dims[0])))
+        actor_layers.append(nn.Linear(critic_enc_dims[-1] + self.len_o1, actor_hidden_dims[0]))
         actor_layers.append(activation)
         for layer_index in range(len(actor_hidden_dims)):
             if layer_index == len(actor_hidden_dims) - 1:
-                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], num_actions), std=1.0))
+                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], num_actions))
             else:
-                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1])))
+                actor_layers.append(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1]))
                 actor_layers.append(activation)
         self.actor = nn.Sequential(*actor_layers)
 
         # Value function
         critic_enc_layers = []
-        critic_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
+        critic_enc_layers.append(nn.Linear(self.num_critic_obs - self.len_o1, critic_enc_dims[0]))
         critic_enc_layers.append(activation)
-        for layer_index in range(len(enc_dims) - 1):
-            critic_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
-            if layer_index != len(enc_dims) - 2:
+        for layer_index in range(len(critic_enc_dims) - 1):
+            critic_enc_layers.append(nn.Linear(critic_enc_dims[layer_index], critic_enc_dims[layer_index + 1]))
+            if layer_index != len(critic_enc_dims) - 2:
                 critic_enc_layers.append(activation)
             elif enc_activation:
                 critic_enc_layers.append(activation)
@@ -75,19 +107,19 @@ class ActorCritic_o1(nn.Module):
         self.critic_enc = nn.Sequential(*critic_enc_layers)
 
         critic_layers = []
-        critic_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, critic_hidden_dims[0])))
+        critic_layers.append(nn.Linear(critic_enc_dims[-1] + self.len_o1, critic_hidden_dims[0]))
         critic_layers.append(activation)
         for layer_index in range(len(critic_hidden_dims)):
             if layer_index == len(critic_hidden_dims) - 1:
-                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], 1), std=1.0))
+                critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], 1))
             else:
-                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1])))
+                critic_layers.append(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1]))
                 critic_layers.append(activation)
         self.critic = nn.Sequential(*critic_layers)
 
-        print(f"Actor Encoder: {self.actor_enc}")
+        print(f"Actor Encoder: {self.cnn_actor}")
         print(f"Actor MLP: {self.actor}")
-        print(f"Actor parameters: {sum([p.numel() for p in self.actor.parameters()]) + sum([p.numel() for p in self.actor_enc.parameters()])}\n")
+        print(f"Actor parameters: {sum([p.numel() for p in self.actor.parameters()]) + sum([p.numel() for p in self.cnn_actor.parameters()])}\n")
         print(f"Critic Encoder: {self.critic_enc}")
         print(f"Critic MLP: {self.critic}")
         print(f"Critic parameters: {sum([p.numel() for p in self.critic.parameters()]) + sum([p.numel() for p in self.critic_enc.parameters()])}")
@@ -107,10 +139,12 @@ class ActorCritic_o1(nn.Module):
         Normal.set_default_validate_args(False)
 
     @staticmethod
-    def layer_init(layer, std=sqrt(2), bias_const=0.0):
-        torch.nn.init.orthogonal_(layer.weight, std)
-        torch.nn.init.constant_(layer.bias, bias_const)
-        return layer
+    # not used at the moment
+    def init_weights(sequential, scales):
+        [
+            torch.nn.init.orthogonal_(module.weight, gain=scales[idx])
+            for idx, module in enumerate(mod for mod in sequential if isinstance(mod, nn.Linear))
+        ]
 
     def reset(self, dones=None):
         pass
@@ -132,9 +166,16 @@ class ActorCritic_o1(nn.Module):
 
     def update_distribution(self, observations):
         # compute mean
-        o_t = observations[:, :self.len_o1]
-        x_t = observations[:, self.len_o1:]
-        l_t = self.actor_enc(x_t)
+        # o_t = observations[:, -1, :].reshape(observations.shape[0], -1)
+        # h = observations[:, :-1, :].permute(0, 2, 1)
+        if observations.dim() == 3:
+            o_t = observations[:, -1, :]
+            h = observations[:, :-1, :].permute(0, 2, 1)
+        else:
+            o_t = observations[:, -self.len_o1:]
+            h = observations.reshape(observations.shape[0], self.sum_actor_obs, self.len_o1)[:, :-1, :].permute(0, 2, 1)
+            
+        l_t = self.cnn_actor(h)
         mean = self.actor(torch.cat((o_t, l_t), dim=1))
         # compute standard deviation
         if self.noise_std_type == "scalar":
@@ -154,9 +195,13 @@ class ActorCritic_o1(nn.Module):
         return self.distribution.log_prob(actions).sum(dim=-1)
 
     def act_inference(self, observations):
-        o_t = observations[:, :self.len_o1]
-        x_t = observations[:, self.len_o1:]
-        l_t = self.actor_enc(x_t)
+        if observations.dim() == 3:
+            o_t = observations[:, -1, :]
+            h = observations[:, :-1, :].permute(0, 2, 1)
+        else:
+            o_t = observations[:, -self.len_o1:]
+            h = observations.reshape(observations.shape[0], self.sum_actor_obs, self.len_o1)[:, :-1, :].permute(0, 2, 1)
+        l_t = self.cnn_actor(h)
         actions_mean = self.actor(torch.cat((o_t, l_t), dim=1))
         return actions_mean
 

@@ -1,5 +1,5 @@
 from isaaclab.utils import configclass
-from tema_lab.tasks.manager_based.locomotion.velocity_rma_v3.velocity_env_cfg import LocomotionVelocityRoughEnvCfg, ObservationsCfg
+from .env_cfg import LocomotionVelocityRoughEnvCfg, ObservationsCfg
 from tema_lab.lab.terrains.config import *
 from tema_lab.assets.robots.unitree import *
 

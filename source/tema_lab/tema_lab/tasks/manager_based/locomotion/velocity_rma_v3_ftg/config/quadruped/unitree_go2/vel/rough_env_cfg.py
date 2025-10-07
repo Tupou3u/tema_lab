@@ -9,7 +9,7 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
     base_link_name = "base"
     foot_link_name = ".*_foot"
     h_max = 0.08
-    f_b = 1.25
+    f_b = 2.0
 
     def __post_init__(self):
         super().__post_init__()
@@ -23,23 +23,23 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             ".*_calf_joint": -1.5,
         }
         
-        # self.scene.robot.actuators = {
-        #     "legs": delayed_actuators.DelayedUnitreeActuatorCfg(
-        #         joint_names_expr=[".*"],
-        #         stiffness=25, 
-        #         damping=0.5, 
-        #         friction=0.01,
-        #         X1=13.5,
-        #         X2=30,
-        #         Y1=20.2,
-        #         Y2=23.4,
-        #         min_delay=0,  
-        #         max_delay=4,  # in physics timesteps
-        #     )
-        # }      
+        self.scene.robot.actuators = {
+            "legs": delayed_actuators.DelayedUnitreeActuatorCfg(
+                joint_names_expr=[".*"],
+                stiffness=25, 
+                damping=0.5, 
+                friction=0.01,
+                X1=13.5,
+                X2=30,
+                Y1=20.2,
+                Y2=23.4,
+                min_delay=0,  
+                max_delay=4,  # in physics timesteps
+            )
+        }      
         
-        self.scene.terrain.terrain_generator = HARD_ROUGH_TERRAINS_CFG
-        # self.scene.terrain.terrain_generator = EASY_ROUGH_TERRAINS_CFG
+        # self.scene.terrain.terrain_generator = HARD_ROUGH_TERRAINS_CFG
+        self.scene.terrain.terrain_generator = EASY_ROUGH_TERRAINS_CFG
         # self.curriculum = None
         if self.curriculum:
             self.scene.terrain.terrain_generator.curriculum = True
@@ -66,12 +66,21 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         # ------------------------------Actions------------------------------
 
+<<<<<<< HEAD
         self.actions.joint_pos_ftg.mode = "ftg"
         self.actions.joint_pos_ftg.alpha = 0.01
         self.actions.joint_pos_ftg.f_alpha = 0.01
         # self.actions.joint_pos_ftg.mode = "joint"
         # self.actions.joint_pos_ftg.alpha = 0.2
         # self.actions.joint_pos_ftg.f_alpha = 0.1
+=======
+        # self.actions.joint_pos_ftg.mode = "ftg"
+        # self.actions.joint_pos_ftg.alpha = 0.02
+        # self.actions.joint_pos_ftg.f_alpha = 0.01
+        self.actions.joint_pos_ftg.mode = "joint"
+        self.actions.joint_pos_ftg.alpha = 0.1
+        self.actions.joint_pos_ftg.f_alpha = 0.1
+>>>>>>> d915194 (.)
         self.actions.joint_pos_ftg.h_max = self.h_max
         self.actions.joint_pos_ftg.f_b = self.f_b
         self.actions.joint_pos_ftg.joint_names = self.scene.robot.joint_sdk_names
@@ -88,18 +97,19 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
             "velocity_range": {}
         }
 
-        self.events.randomize_rigid_body_material = None
-        self.events.randomize_rigid_base_mass = None
-        self.events.randomize_rigid_body_mass = None
-        self.events.randomize_base_com_position = None
-        self.events.randomize_com_positions = None
-        self.events.randomize_apply_external_force_torque = None
-        self.events.randomize_actuator_gains = None
-        self.events.randomize_push_robot = None
+        # self.events.randomize_rigid_body_material = None
+        # self.events.randomize_rigid_base_mass = None
+        # self.events.randomize_rigid_body_mass = None
+        # self.events.randomize_base_com_position = None
+        # self.events.randomize_com_positions = None
+        # self.events.randomize_apply_external_force_torque = None
+        # self.events.randomize_actuator_gains = None
+        # self.events.randomize_push_robot = None
 
         # ------------------------------Rewards------------------------------
         
         self.rewards.base_linear_velocity.weight = 5.0
+<<<<<<< HEAD
         self.rewards.base_linear_velocity.params["std"] = 1.0
         self.rewards.base_angular_velocity.weight = 3.0
         self.rewards.base_angular_velocity.params["std"] = 2.0
@@ -135,13 +145,56 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
         # self.rewards.lin_vel_z_l2.weight = -2.0
         # self.rewards.ang_vel_xy_l2.weight = -0.05
         # self.rewards.joint_mirror.weight = -1.0
+=======
+        self.rewards.base_linear_velocity.params["std"] = 0.25
+        self.rewards.base_angular_velocity.weight = 3.0
+        self.rewards.base_angular_velocity.params["std"] = 0.25
+        self.rewards.foot_clearance.weight = 1.0 
+        self.rewards.foot_clearance.params["std"] = 0.05
+        self.rewards.foot_clearance.params["target_height"] = self.h_max + 0.023
+        # self.rewards.gait.weight = 1.0
+        # self.rewards.gait.params["std"] = 0.1
+        self.rewards.air_time.weight = 3.0
+        self.rewards.air_time.params["mode_time"] = (1 / self.f_b) / 2
+        self.rewards.action_rate.weight = -0.05
+        self.rewards.action_smoothness.weight = -0.05
+        self.rewards.air_time_variance.weight = -1.0
+        self.rewards.base_orientation.weight = 1.0
+        self.rewards.base_orientation.params["std"] = 0.05
+        self.rewards.foot_slip.weight = -0.5
+        self.rewards.joint_acc.weight = -2.5e-7
+        self.rewards.joint_torques.weight = -2.0e-4
+        self.rewards.joint_vel.weight = -1.0e-3
+        self.rewards.joint_vel.params["asset_cfg"].joint_names = [".*_hip_joint", ".*_thigh_joint"]
+        self.rewards.joint_power.weight = -2.0e-5 
+        self.rewards.undesired_contacts.weight = -1.0
+        self.rewards.undesired_contacts.params["sensor_cfg"].body_names = ["Head_.*", ".*_hip", ".*_thigh", ".*_calf"]
+        self.rewards.base_height.weight = 1.0
+        self.rewards.base_height.params["std"] = 0.05
+        self.rewards.base_height.params["target_height"] = self.actions.joint_pos_ftg.base_h
+        self.rewards.stand_still.weight = -5.0
+        self.rewards.stand_still_vel.weight = -1.0
+        self.rewards.joint_pos_limits.weight = -10.0
+        self.rewards.joint_torque_limits.weight = -0.1
+        self.rewards.lin_vel_z_l2.weight = -5.0
+        # self.rewards.ang_vel_xy_l2.weight = -0.5
+        self.rewards.ang_vel_x_l2.weight = -0.5
+        self.rewards.ang_vel_y_l2.weight = -2.0
+        # self.rewards.joint_mirror.weight = -0.1
+>>>>>>> d915194 (.)
         # self.rewards.joint_mirror.params["mirror_joints"] = [
         #     ["FR_(thigh|calf).*", "RL_(thigh|calf).*"],
         #     ["FL_(thigh|calf).*", "RR_(thigh|calf).*"],
         # ]
+<<<<<<< HEAD
         # self.rewards.feet_distance_y_exp.weight = 1.0
         # self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
         # self.rewards.feet_distance_y_exp.params["std"] = 0.025
+=======
+        self.rewards.feet_distance_y_exp.weight = 1.0
+        self.rewards.feet_distance_y_exp.params["stance_width"] = 0.2
+        self.rewards.feet_distance_y_exp.params["std"] = 0.025
+>>>>>>> d915194 (.)
 
         # ------------------------------Terminations------------------------------
 
@@ -152,9 +205,9 @@ class Go2RoughEnvCfg(LocomotionVelocityRoughEnvCfg):
 
         self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.0) 
         self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
-        self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
+        self.commands.base_velocity.ranges.ang_vel_z = (-1.0, 1.0)
         
-        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 3.0) 
+        # self.commands.base_velocity.ranges.lin_vel_x = (-1.0, 1.5) 
         # self.commands.base_velocity.ranges.lin_vel_y = (-1.0, 1.0)
         # self.commands.base_velocity.ranges.ang_vel_z = (-1.5, 1.5)
         

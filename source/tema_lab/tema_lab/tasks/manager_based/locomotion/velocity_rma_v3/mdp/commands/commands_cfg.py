@@ -1,4 +1,3 @@
-import math
 from dataclasses import MISSING
 
 from isaaclab.managers import CommandTermCfg
@@ -7,7 +6,9 @@ from isaaclab.markers.config import BLUE_ARROW_X_MARKER_CFG, FRAME_MARKER_CFG, G
 from isaaclab.utils import configclass
 import isaaclab.sim as sim_utils
 
-from .pos_command import UniformPositionCommand
+from .pose_command import UniformPositionCommand
+from .terrain_command import TerrainVelocityCommand
+from isaaclab.envs.mdp.commands.commands_cfg import UniformVelocityCommandCfg
 
 
 @configclass
@@ -40,3 +41,10 @@ class UniformPositionCommandCfg(CommandTermCfg):
     current_pos_visualizer_cfg.markers["frame"].scale = (0.2, 0.2, 0.2)
     goal_pos_visualizer_cfg.markers["frame"].visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 1.0, 0.0))
     current_pos_visualizer_cfg.markers["frame"].visual_material=sim_utils.PreviewSurfaceCfg(diffuse_color=(0.0, 0.0, 1.0))
+    
+    
+@configclass
+class TerrainVelocityCommandCfg(UniformVelocityCommandCfg):
+    """Configuration for the terrain velocity command generator."""
+
+    class_type: type = TerrainVelocityCommand

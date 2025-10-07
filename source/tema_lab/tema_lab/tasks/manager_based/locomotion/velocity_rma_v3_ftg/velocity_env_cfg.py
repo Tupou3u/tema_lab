@@ -59,7 +59,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.0, 0.0)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_FR_foot = RayCasterCfg(
@@ -67,7 +67,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_FL_foot = RayCasterCfg(
@@ -75,7 +75,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_RR_foot = RayCasterCfg(
@@ -83,7 +83,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     height_scanner_RL_foot = RayCasterCfg(
@@ -91,7 +91,7 @@ class MySceneCfg(InteractiveSceneCfg):
         offset=RayCasterCfg.OffsetCfg(pos=(0.0, 0.0, 20.0)),
         ray_alignment="yaw",
         pattern_cfg=patterns.GridPatternCfg(resolution=0.1, size=(0.4, 0.4)),
-        debug_vis=True,
+        debug_vis=False,
         mesh_prim_paths=["/World/ground"],
     )
     contact_forces = ContactSensorCfg(
@@ -353,10 +353,10 @@ class ObservationsCfg:
             self.concatenate_terms = True
 
     # observation groups
-    policy: TeacherCfg = TeacherCfg()
+    # policy: TeacherCfg = TeacherCfg()
 
-    # teacher: TeacherCfg = TeacherCfg()
-    # policy: PolicyCfg = PolicyCfg()
+    teacher: TeacherCfg = TeacherCfg()
+    policy: PolicyCfg = PolicyCfg()
 
 
 @configclass
@@ -718,6 +718,16 @@ class RewardsCfg:
 
     ang_vel_xy_l2 = RewTerm(
         func=base_mdp.ang_vel_xy_l2, 
+        weight=0.0
+    )
+    
+    ang_vel_x_l2 = RewTerm(
+        func=mdp.ang_vel_x_l2, 
+        weight=0.0
+    )
+    
+    ang_vel_y_l2 = RewTerm(
+        func=mdp.ang_vel_y_l2, 
         weight=0.0
     )
     

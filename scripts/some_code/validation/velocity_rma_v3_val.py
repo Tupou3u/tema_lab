@@ -18,27 +18,30 @@ simulation_app = app_launcher.app
 import time
 import torch
 from isaaclab.envs import ManagerBasedRLEnv
-from tema_lab.tasks.manager_based.locomotion.velocity_rma_v3.config.quadruped.unitree_go2.vel.flat_env_cfg import Go2FlatEnvCfg, Go2RoughEnvCfg
-from isaaclab_rl.rsl_rl.new_modules.actor_critic_o1 import ActorCritic_o1
+from tema_lab.tasks.manager_based.locomotion.velocity_rma_v3.config.quadruped.unitree_go2.vel.flat_env_cfg import Go2FlatEnvCfgTeacher, Go2FlatEnvCfgDistillation
+from tema_lab.tasks.manager_based.locomotion.velocity_rma_v3.config.quadruped.unitree_go2.vel.rough_env_cfg import Go2RoughEnvCfgTeacher, Go2RoughEnvCfgDistillation
+from tema_lab.rl.rsl_rl.agents import ActorCritic_o1
 from isaaclab.devices import Se2Keyboard, Se2KeyboardCfg
 from isaaclab.managers import ObservationTermCfg as ObsTerm
 
-env_cfg = Go2FlatEnvCfg()
-# env_cfg = Go2RoughEnvCfg()
+env_cfg = Go2FlatEnvCfgTeacher()
 
 env_cfg.scene.num_envs = 1
 env_cfg.terminations = None
 env_cfg.events = None
 env_cfg.commands.base_velocity.debug_vis = False
+
 controller_cfg = Se2KeyboardCfg(
     v_x_sensitivity=env_cfg.commands.base_velocity.ranges.lin_vel_x[1],
     v_y_sensitivity=env_cfg.commands.base_velocity.ranges.lin_vel_y[1],
     omega_z_sensitivity=env_cfg.commands.base_velocity.ranges.ang_vel_z[1]
 )
 controller = Se2Keyboard(controller_cfg)
+
 env_cfg.observations.policy.velocity_commands = ObsTerm(
     func=lambda env: torch.tensor(controller.advance(), dtype=torch.float32).unsqueeze(0).to(env.device),
 )
+
 env = ManagerBasedRLEnv(cfg=env_cfg)
 
 model = ActorCritic_o1(

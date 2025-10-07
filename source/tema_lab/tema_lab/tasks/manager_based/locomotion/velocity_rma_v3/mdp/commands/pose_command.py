@@ -12,7 +12,7 @@ from isaaclab.markers import VisualizationMarkers
 
 if TYPE_CHECKING:
     from isaaclab.envs import ManagerBasedEnv
-    from .command_cfg import UniformPositionCommandCfg
+    from .commands_cfg import UniformPositionCommandCfg
 
 
 class UniformPositionCommand(CommandTerm):

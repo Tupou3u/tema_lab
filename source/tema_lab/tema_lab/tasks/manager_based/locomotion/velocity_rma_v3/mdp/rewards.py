@@ -176,6 +176,9 @@ class GaitReward(ManagerTermBase):
         async_reward_2 = self._async_reward_func(self.synced_feet_pairs[0][0], self.synced_feet_pairs[1][1])
         async_reward_3 = self._async_reward_func(self.synced_feet_pairs[1][0], self.synced_feet_pairs[0][1])
         async_reward = async_reward_0 * async_reward_1 * async_reward_2 * async_reward_3
+        # async_reward_0 = self._async_reward_func(self.synced_feet_pairs[0][0], self.synced_feet_pairs[1][0])
+        # async_reward_2 = self._async_reward_func(self.synced_feet_pairs[0][0], self.synced_feet_pairs[1][1])
+        # async_reward = async_reward_0 * async_reward_2
         # only enforce gait if cmd > 0
         cmd = torch.norm(env.command_manager.get_command("base_velocity"), dim=1)
         body_lin_vel = torch.norm(self.asset.data.root_lin_vel_b[:, :2], dim=1)
@@ -857,3 +860,13 @@ def feet_distance_xy_exp(
 #         cmd > 0.0
 #     )
 #     return torch.where(cond, reward, 0.0)
+
+
+def ang_vel_x_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return torch.square(asset.data.root_ang_vel_b[:, 0])
+
+
+def ang_vel_y_l2(env: ManagerBasedRLEnv, asset_cfg: SceneEntityCfg = SceneEntityCfg("robot")) -> torch.Tensor:
+    asset: RigidObject = env.scene[asset_cfg.name]
+    return torch.square(asset.data.root_ang_vel_b[:, 1])

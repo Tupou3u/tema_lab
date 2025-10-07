@@ -1,2 +1,2 @@
-from .command_cfg import UniformPositionCommandCfg
-from .pos_command import UniformPositionCommand
+from .commands_cfg import UniformPositionCommandCfg, TerrainVelocityCommandCfg
+from .pose_command import UniformPositionCommand

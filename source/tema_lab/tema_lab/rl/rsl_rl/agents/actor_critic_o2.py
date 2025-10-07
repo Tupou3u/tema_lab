@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import MISSING
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from rsl_rl.utils import resolve_nn_activation
 from math import sqrt
 
 
-class ActorCritic_o1(nn.Module):
+class ActorCritic_o2(nn.Module):
     is_recurrent = False
 
     def __init__(
@@ -18,12 +19,20 @@ class ActorCritic_o1(nn.Module):
         num_actions,
         actor_hidden_dims,
         critic_hidden_dims,
-        activation="elu",
-        init_noise_std=1.0,
+        activation: str = "elu",
+        init_noise_std: float = 1.0,
         noise_std_type: str = "scalar",
-        enc_dims=[128, 64],
-        len_o1=48,
-        enc_activation=True,
+        len_o: int = MISSING,
+        len_h: int = MISSING,
+        len_p: int = MISSING,
+        len_l_o: int = MISSING,
+        len_l_h: int = MISSING,
+        len_l_p: int = MISSING,
+        o_enc_dims: list[int] = MISSING,
+        h_enc_dims: list[int] = MISSING,
+        p_enc_dims: list[int] = MISSING,
+        history_len: int = MISSING,
+        enc_activation: bool = MISSING,
         **kwargs,
     ):
         if kwargs:
@@ -34,63 +43,33 @@ class ActorCritic_o1(nn.Module):
         super().__init__()
         activation = resolve_nn_activation(activation)
 
-        self.len_obs = num_actor_obs
-        self.len_o1 = len_o1
+        self.len_o = len_o
+        self.len_h = len_h
+        self.len_p = len_p
+        self.history_len = history_len
 
-        # Policy
-        actor_enc_layers = []
-        actor_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
-        actor_enc_layers.append(activation)
-        for layer_index in range(len(enc_dims) - 1):
-            actor_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
-            if layer_index != len(enc_dims) - 2:
-                actor_enc_layers.append(activation)
-            elif enc_activation:
-                actor_enc_layers.append(activation)
-                
-        self.actor_enc = nn.Sequential(*actor_enc_layers)
-
-        actor_layers = []
-        actor_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, actor_hidden_dims[0])))
-        actor_layers.append(activation)
-        for layer_index in range(len(actor_hidden_dims)):
-            if layer_index == len(actor_hidden_dims) - 1:
-                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], num_actions), std=1.0))
-            else:
-                actor_layers.append(self.layer_init(nn.Linear(actor_hidden_dims[layer_index], actor_hidden_dims[layer_index + 1])))
-                actor_layers.append(activation)
-        self.actor = nn.Sequential(*actor_layers)
+        # Policy                
+        self.actor_o_enc = self.create_mlp(len_o, len_l_o, o_enc_dims, activation, out_activation=False, std=1.0)
+        self.actor_h_enc = self.create_mlp(len_h, len_l_h, h_enc_dims, activation, out_activation=False, std=1.0)
+        self.actor_p_enc = self.create_mlp(len_p, len_l_p, p_enc_dims, activation, out_activation=False, std=1.0)
+        self.actor_backbone = self.create_mlp(
+            len_o + len_l_o + len_l_h + len_l_p, num_actions, actor_hidden_dims, activation, out_activation=False, std=1.0
+        )
 
         # Value function
-        critic_enc_layers = []
-        critic_enc_layers.append(self.layer_init(nn.Linear(self.len_obs - self.len_o1, enc_dims[0])))
-        critic_enc_layers.append(activation)
-        for layer_index in range(len(enc_dims) - 1):
-            critic_enc_layers.append(self.layer_init(nn.Linear(enc_dims[layer_index], enc_dims[layer_index + 1])))
-            if layer_index != len(enc_dims) - 2:
-                critic_enc_layers.append(activation)
-            elif enc_activation:
-                critic_enc_layers.append(activation)
+        self.critic_o_enc = self.create_mlp(len_o, len_l_o, o_enc_dims, activation, out_activation=False, std=1.0)
+        self.critic_h_enc = self.create_mlp(len_h, len_l_h, h_enc_dims, activation, out_activation=False, std=1.0)
+        self.critic_p_enc = self.create_mlp(len_p, len_l_p, p_enc_dims, activation, out_activation=False, std=1.0)
+        self.critic_backbone = self.create_mlp(
+            len_o + len_l_o + len_l_h + len_l_p, 1, critic_hidden_dims, activation, out_activation=False, std=1.0
+        )
 
-        self.critic_enc = nn.Sequential(*critic_enc_layers)
-
-        critic_layers = []
-        critic_layers.append(self.layer_init(nn.Linear(enc_dims[-1] + self.len_o1, critic_hidden_dims[0])))
-        critic_layers.append(activation)
-        for layer_index in range(len(critic_hidden_dims)):
-            if layer_index == len(critic_hidden_dims) - 1:
-                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], 1), std=1.0))
-            else:
-                critic_layers.append(self.layer_init(nn.Linear(critic_hidden_dims[layer_index], critic_hidden_dims[layer_index + 1])))
-                critic_layers.append(activation)
-        self.critic = nn.Sequential(*critic_layers)
-
-        print(f"Actor Encoder: {self.actor_enc}")
-        print(f"Actor MLP: {self.actor}")
-        print(f"Actor parameters: {sum([p.numel() for p in self.actor.parameters()]) + sum([p.numel() for p in self.actor_enc.parameters()])}\n")
-        print(f"Critic Encoder: {self.critic_enc}")
-        print(f"Critic MLP: {self.critic}")
-        print(f"Critic parameters: {sum([p.numel() for p in self.critic.parameters()]) + sum([p.numel() for p in self.critic_enc.parameters()])}")
+        print(f"Actor Encoder: {self.actor_o_enc, self.actor_h_enc, self.actor_p_enc}")
+        print(f"Actor MLP: {self.actor_backbone}")
+        print(f"Actor parameters: {sum([p.numel() for p in list(self.actor_o_enc.parameters()) + list(self.actor_h_enc.parameters()) + list(self.actor_p_enc.parameters()) + list(self.actor_backbone.parameters())])}\n")
+        print(f"Critic Encoder: {self.critic_o_enc, self.critic_h_enc, self.critic_p_enc}")
+        print(f"Critic MLP: {self.critic_backbone}")
+        print(f"Critic parameters: {sum([p.numel() for p in list(self.critic_o_enc.parameters()) + list(self.critic_h_enc.parameters()) + list(self.critic_p_enc.parameters()) + list(self.critic_backbone.parameters())])}\n")
 
         # Action noise
         self.noise_std_type = noise_std_type
@@ -111,6 +90,20 @@ class ActorCritic_o1(nn.Module):
         torch.nn.init.orthogonal_(layer.weight, std)
         torch.nn.init.constant_(layer.bias, bias_const)
         return layer
+    
+    def create_mlp(self, input_dim, out_dim, hidden_dims, activation, out_activation=False, std=1.0):
+        layers = []
+        layers.append(self.layer_init(nn.Linear(input_dim, hidden_dims[0])))
+        layers.append(activation)
+        for layer_index in range(len(hidden_dims)):
+            if layer_index == len(hidden_dims) - 1:
+                layers.append(self.layer_init(nn.Linear(hidden_dims[layer_index], out_dim), std=std))
+                if out_activation:
+                    layers.append(activation)
+            else:
+                layers.append(self.layer_init(nn.Linear(hidden_dims[layer_index], hidden_dims[layer_index + 1])))
+                layers.append(activation)
+        return nn.Sequential(*layers)
 
     def reset(self, dones=None):
         pass

@@ -2,11 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 from isaaclab.utils import configclass
-from tema_lab.rl.rsl_rl.cfg import (
-    RslRlOnPolicyRunnerCfg,
+from isaaclab_rl.rsl_rl import (
+    RslRlOnPolicyRunnerCfg,  
     RslRlPpoActorCritic_o1_Cfg,
-    RslRlPpoAlgorithmCfg,
+    RslRlPpoAlgorithmCfg, 
     RslRlDistillation_CNN1d_o1_StudentTeacherCfg,
+    RslRlDistillation_CNN1d_o1_res_StudentTeacherCfg,
     RslRlDistillation_Recurrent_o1_StudentTeacherCfg,
     RslRlDistillation_o1_AlgorithmCfg
 )
@@ -31,9 +32,15 @@ class Go2RoughPPORunnerCfg_Teacher(RslRlOnPolicyRunnerCfg):
     algorithm = RslRlPpoAlgorithmCfg(
         value_loss_coef=0.1,
         use_clipped_value_loss=True,
+<<<<<<< HEAD
         clip_param=0.2,
         entropy_coef=0.01, 
         # entropy_coef=0.0025,
+=======
+        clip_param=0.1,
+        # entropy_coef=0.01, 
+        entropy_coef=0.0025,
+>>>>>>> d915194 (.)
         num_learning_epochs=5,
         num_mini_batches=8,
         # num_mini_batches=4,
